@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GlowLink Studio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: quiet, premium car-companion app; few words, big touch targets
+   IDEA: the whole interface takes on the color your lights are showing
+   PICTURE: headlight up top glowing live; color wheel as the main control
+   COLOUR and TYPE: graphite ground, the live light color is the only accent; Sora + Inter
+   LAYOUT: phone column, sections switched by a thumb-reach bottom bar, lights in a slide-up sheet */
+:root{color-scheme:dark;--bg:#0b0c10;--card:#15171d;--card2:#1c1f27;--line:#262a33;--ink:#f2f4f8;--mute:#8d95a5;--live:#4fd1ff;--onlive:#06121a}
+*{box-sizing:border-box;min-width:0;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2{font-family:Sora,Inter,sans-serif;font-weight:600;margin:0}
+h2{font-size:22px;line-height:1.1}
+p{margin:6px 0}
+.app{max-width:480px;margin:0 auto;padding:12px 16px 110px}
+button,input,select,textarea{font:inherit;color:inherit}
+button{min-height:44px;border-radius:14px;border:0;background:var(--card2);padding:0 16px;cursor:pointer}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--live);outline-offset:2px}
+.go{background:var(--live);color:var(--onlive);font-weight:600}
+.ghost{background:none;border:1px solid var(--line)}
+input[type=text],input[type=number],select,textarea{min-height:44px;font-size:16px;background:var(--card2);border:1px solid var(--line);border-radius:14px;padding:8px 12px}
+input[type=range]{width:100%;accent-color:var(--live);height:36px}
+.top{display:flex;align-items:center;gap:10px}
+.brand{font:600 20px Sora,sans-serif;flex:1}
+.brand b{color:var(--live)}
+.pill{display:flex;align-items:center;gap:8px;border-radius:999px;font-size:14px;padding:0 14px}
+.dot{width:9px;height:9px;border-radius:50%;background:#e0565b;flex:none}
+.dot.ok{background:#3ddc84;box-shadow:0 0 8px #3ddc84}
+.pwr{width:48px;height:48px;border-radius:50%;padding:0;display:grid;place-items:center}
+.pwr.on{background:var(--live);color:var(--onlive);box-shadow:0 0 24px color-mix(in srgb,var(--live) 55%,transparent)}
+.hero{position:relative;height:170px;margin:14px 0 4px;border-radius:24px;overflow:hidden;background:radial-gradient(80% 120% at 30% 110%,color-mix(in srgb,var(--live) 22%,transparent),transparent 70%),var(--card)}
+.hero svg{position:absolute;inset:0;width:100%;height:100%}
+.state{display:flex;justify-content:space-between;gap:8px;color:var(--mute);font-size:14px;margin-bottom:14px}
+.state b{color:var(--ink);font-weight:600}
+.view[hidden]{display:none}
+.card{background:var(--card);border-radius:22px;padding:16px;margin-top:12px}
+.lbl{display:flex;justify-content:space-between;color:var(--mute);font-size:14px;margin-top:10px}
+.wheel{position:relative;width:min(280px,82vw);aspect-ratio:1;margin:4px auto 0;touch-action:none}
+.wheel canvas{width:100%;height:100%;border-radius:50%;display:block;cursor:crosshair}
+.mk{position:absolute;width:30px;height:30px;margin:-15px 0 0 -15px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 2px #0009,0 4px 12px #000b;pointer-events:none}
+.hexrow{display:flex;gap:10px;align-items:center;justify-content:center;margin-top:14px}
+.hexsw{width:44px;height:44px;border-radius:12px;background:var(--live);flex:none}
+#hexin{width:150px;text-align:center;font:600 20px ui-monospace,Menlo,monospace;letter-spacing:.05em;text-transform:uppercase}
+#hexin.bad{border-color:#ff5a5a}
+.err{color:#ff8a8a;font-size:14px;text-align:center;min-height:20px}
+.sws{display:flex;gap:10px;overflow-x:auto;padding:4px 2px 8px;scroll-snap-type:x mandatory}
+.sw{flex:none;width:44px;height:44px;border-radius:50%;padding:0;scroll-snap-align:start;box-shadow:inset 0 0 0 2px #0006}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:12px}
+.fx{display:flex;flex-direction:column;align-items:flex-start;gap:8px;padding:12px;min-height:76px;text-align:left;font-size:14px;border-radius:16px}
+.fx i{display:block;width:100%;height:8px;border-radius:4px}
+.fx.on,.look.on{box-shadow:inset 0 0 0 2px var(--live)}
+.look{position:relative;display:flex;flex-direction:column;justify-content:flex-end;gap:6px;min-height:104px;padding:12px;border-radius:18px;text-align:left;font-weight:600;font-size:15px;overflow:hidden}
+.look i{position:absolute;inset:0 0 auto 0;height:52px;opacity:.9}
+.look span{position:relative}
+.look .x{position:absolute;top:6px;right:6px;width:36px;height:36px;min-height:36px;padding:0;border-radius:50%;background:#000a;color:#fff;font-size:16px}
+.add{border:1.5px dashed var(--line);background:none;color:var(--mute);font-weight:500}
+.tl{display:flex;height:64px;border-radius:14px;overflow:hidden;gap:3px;margin-top:12px}
+.tl button{border-radius:0;padding:0;min-width:18px;min-height:64px}
+.tl button.sel{box-shadow:inset 0 0 0 3px #fff,inset 0 0 0 5px #000}
+.ed{display:grid;gap:10px;margin-top:12px}
+.ed .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.ed input[type=color]{width:56px;height:48px;border:0;background:none;padding:0}
+.sw-t{display:flex;align-items:center;gap:10px;min-height:44px;cursor:pointer}
+.sw-t input{appearance:none;width:46px;height:28px;border-radius:14px;background:var(--line);position:relative;cursor:pointer;margin:0;flex:none}
+.sw-t input::after{content:"";position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:left .15s}
+.sw-t input:checked{background:var(--live)}
+.sw-t input:checked::after{left:21px}
+.ed .sw-t{white-space:nowrap}
+.row2{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.row2>*{flex:1 1 auto}
+#log{font:13px/1.45 ui-monospace,Menlo,monospace;max-height:260px;overflow:auto;white-space:pre-wrap;color:var(--mute);margin-top:8px}
+textarea{width:100%;min-height:100px;margin-top:8px}
+summary{min-height:44px;display:flex;align-items:center;cursor:pointer;font-weight:600}
+.mute{color:var(--mute);font-size:14px}
+.note{background:#2a1f08;color:#ffd58a;border-radius:14px;padding:10px 12px;font-size:14px;margin-top:10px}
+nav.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(14px);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+nav.bar div{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+nav.bar button{background:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:12px;color:var(--mute);min-height:56px;padding:4px 0}
+nav.bar button[aria-selected=true]{color:var(--live)}
+nav.bar svg{width:24px;height:24px}
+.scrim{position:fixed;inset:0;background:#0009;z-index:9}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:10;max-height:85vh;overflow:auto;background:var(--card);border-radius:24px 24px 0 0;padding:10px 16px calc(20px + env(safe-area-inset-bottom));max-width:520px;margin:0 auto}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.dev{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--line);flex-wrap:wrap}
+.dev input[type=text]{flex:1 1 130px}
+.dev .sw-t{min-height:44px}
+@media(prefers-reduced-motion:reduce){.sw-t input::after{transition:none}}
+</style></head><body>
+<div class="app">
+  <header class="top">
+    <div class="brand">Glow<b>Link</b></div>
+    <button class="pill" id="lightsBtn" aria-haspopup="dialog"><span class="dot" id="dotTop"></span><span id="lightsTxt">No lights</span></button>
+    <button class="pwr on" id="pw" aria-label="Lights power" aria-pressed="true"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 3v8"/><path d="M6.3 7a8 8 0 1 0 11.4 0"/></svg></button>
+  </header>
+
+  <div class="hero"><svg viewBox="0 0 360 160" preserveAspectRatio="xMidYMid meet" role="img" aria-label="Headlight preview">
+    <defs><filter id="bl" x="-30%" y="-80%" width="160%" height="260%"><feGaussianBlur stdDeviation="8"/></filter>
+    <linearGradient id="hs" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b303b"/><stop offset="1" stop-color="#101217"/></linearGradient></defs>
+    <path d="M22 50 L292 26 L340 62 L326 124 L62 134 L26 108 Z" fill="url(#hs)" stroke="#353b47" stroke-width="2"/>
+    <circle cx="238" cy="84" r="31" fill="#0a0c10" stroke="#353b47" stroke-width="2"/><circle cx="238" cy="84" r="18" fill="#1b202b"/><circle cx="230" cy="76" r="6" fill="#ffffff24"/>
+    <g id="drl" style="color:#4fd1ff"><path d="M42 106 L94 68 L198 56 L178 76 L106 86 Z" fill="none" stroke="currentColor" stroke-width="13" stroke-linejoin="round" filter="url(#bl)" opacity=".85"/>
+    <path d="M42 106 L94 68 L198 56 L178 76 L106 86 Z" fill="none" stroke="currentColor" stroke-width="4" stroke-linejoin="round"/></g>
+  </svg></div>
+  <div class="state"><span id="st"><b>Ready</b> · try a demo light</span><span id="stR"></span></div>
+  <div id="bt" class="note" hidden></div>
+
+  <section class="view" id="v-color">
+    <div class="card">
+      <div class="wheel"><canvas id="wh" aria-label="Color wheel. Drag to pick a color."></canvas><span id="mk" class="mk"></span></div>
+      <div class="hexrow"><span class="hexsw"></span><input type="text" id="hexin" maxlength="7" autocomplete="off" spellcheck="false" aria-label="Hex code"></div>
+      <div class="err" id="hexerr" aria-live="polite"></div>
+      <div class="lbl"><span>Brightness</span><span id="brv"></span></div>
+      <input type="range" id="br" min="5" max="100" value="100" aria-label="Brightness">
+    </div>
+    <div class="card">
+      <div class="lbl" style="margin:0 0 6px"><span>Quick colors</span></div>
+      <div class="sws" id="sws"></div>
+      <details><summary>White LEDs</summary>
+        <div class="lbl"><span>Intensity</span><span id="wiv"></span></div>
+        <input type="range" id="wi" min="1" max="255" value="255" aria-label="White intensity">
+        <button id="wb" class="ghost" style="width:100%">Switch to white LEDs</button>
+        <p class="mute">Only for modules with a separate white channel. Otherwise pick white on the wheel.</p>
+      </details>
+    </div>
+  </section>
+
+  <section class="view" id="v-fx" hidden>
+    <div class="card">
+      <h2>Effects</h2>
+      <p class="mute">Run inside the light, so they keep going after you close the app.</p>
+      <div class="lbl"><span>Speed</span><span id="spv"></span></div>
+      <input type="range" id="sp" min="1" max="100" value="60" aria-label="Effect speed">
+      <div class="grid" id="fx"></div>
+    </div>
+  </section>
+
+  <section class="view" id="v-looks" hidden>
+    <div class="card">
+      <div style="display:flex;align-items:center;gap:8px"><h2 style="flex:1">Looks</h2><button class="ghost" id="editLooks">Edit</button></div>
+      <div class="grid" id="looks"></div>
+      <label class="sw-t" style="margin-top:12px"><input type="checkbox" id="rl" checked> Restore last look when a light connects</label>
+    </div>
+  </section>
+
+  <section class="view" id="v-an" hidden>
+    <div class="card">
+      <h2>Animations</h2>
+      <div class="row2"><select id="as" aria-label="Saved animations" style="flex:1 1 160px"></select><button class="ghost" id="anew" style="flex:0 0 auto">New</button></div>
+      <input type="text" id="an" aria-label="Animation name" placeholder="Name" style="width:100%;margin-top:10px">
+      <div class="tl" id="tl" aria-label="Timeline"></div>
+      <div class="lbl"><span id="tlLen"></span><span>Tap a block to edit</span></div>
+      <div class="ed" id="ed"></div>
+      <div class="row2"><button class="ghost" id="aadd">+ Step</button><label class="sw-t" style="flex:0 0 auto"><input type="checkbox" id="aloop" checked> Loop</label></div>
+      <div class="row2"><button class="go" id="aplay">Play</button><button class="ghost" id="asave">Save</button><button class="ghost" id="adel">Delete</button></div>
+      <p class="mute">Played by your phone. Keep the app open while it runs.</p>
+    </div>
+  </section>
+
+  <section class="view" id="v-more" hidden>
+    <div class="card"><h2>Log</h2>
+      <p class="mute">The raw bytes sent to your lights.</p>
+      <div class="row2"><button class="ghost" id="stq">Ask for status</button><button class="ghost" id="lc">Clear</button></div>
+      <div id="log"></div></div>
+    <div class="card"><details id="bk"><summary>Back up looks and animations</summary>
+      <textarea id="px" aria-label="Backup text"></textarea>
+      <div class="row2"><button class="ghost" id="pc">Copy</button><button class="ghost" id="pi">Import</button></div></details></div>
+    <div class="card"><h2>Driving</h2><p class="mute">Colors other than white or amber up front, and flashing effects, are generally for shows and off-road. Use a Street look on the road.</p></div>
+  </section>
+</div>
+
+<nav class="bar" role="tablist"><div>
+  <button data-v="color" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3" fill="currentColor"/></svg>Color</button>
+  <button data-v="fx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M12 3l2.2 5.8L20 11l-5.8 2.2L12 19l-2.2-5.8L4 11l5.8-2.2z"/></svg>Effects</button>
+  <button data-v="looks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg>Looks</button>
+  <button data-v="an"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h5M12 7h8M4 12h10M17 12h3M4 17h3M10 17h10"/></svg>Animate</button>
+  <button data-v="more"><svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More</button>
+</div></nav>
+
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="Your lights" hidden>
+  <div class="grab"></div>
+  <div style="display:flex;align-items:center"><h2 style="flex:1">Your lights</h2><button class="ghost" id="closeSheet">Done</button></div>
+  <div class="row2"><button class="go" id="cn">Connect a light</button><button class="ghost" id="demo">Add demo</button></div>
+  <label class="sw-t"><input type="checkbox" id="all"> Show every Bluetooth device</label>
+  <div id="devs"></div>
+  <p class="mute">Turn on Bluetooth and Location, and close HappyLighting first. Connect each headlight or taillight module and they all follow together.</p>
+</div>
+
+<script>
+{
+const $=id=>document.getElementById(id);
+const store={get(k,d){try{const v=localStorage.getItem('gl.'+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem('gl.'+k,JSON.stringify(v))}catch(e){}}};
+const clone=o=>JSON.parse(JSON.stringify(o));
+const MODES=['Seven-color fade','Red pulse','Green pulse','Blue pulse','Yellow pulse','Cyan pulse','Purple pulse','White pulse','Red/green fade','Red/blue fade','Green/blue fade','Seven-color strobe','Red strobe','Green strobe','Blue strobe','Yellow strobe','Cyan strobe','Purple strobe','White strobe','Seven-color jump'];
+const SW=['#ffffff','#ffa000','#ff2a2a','#ff4fa3','#a35bff','#3b6bff','#4fd1ff','#2affb0','#7dff3a','#ffe14f'];
+const C7=[[255,0,0],[255,255,0],[0,255,0],[0,255,255],[0,0,255],[255,0,255],[255,255,255]];
+const ONE=[[255,0,0],[0,255,0],[0,0,255],[255,255,0],[0,255,255],[255,0,255],[255,255,255]];
+const PAIRS=[[[255,0,0],[0,255,0]],[[255,0,0],[0,0,255]],[[0,255,0],[0,0,255]]];
+const STARTP=[{name:'Street white',s:{type:'color',hex:'#ffffff',br:100}},{name:'Street amber',s:{type:'color',hex:'#ffa000',br:100}},{name:'Ice blue',s:{type:'color',hex:'#4fd1ff',br:100}},{name:'Rainbow fade',s:{type:'mode',mode:0,sp:60}}];
+const STARTA=[{name:'Breathing ice',loop:true,steps:[{c:'#4fd1ff',ms:1200,f:true},{c:'#06222c',ms:1200,f:true}]},{name:'Sunset sweep',loop:true,steps:[{c:'#ff2a2a',ms:900,f:true},{c:'#ff8a00',ms:900,f:true},{c:'#ff4fa3',ms:900,f:true}]},{name:'Heartbeat',loop:true,steps:[{c:'#ff1030',ms:120,f:false},{c:'#000000',ms:140,f:false},{c:'#ff1030',ms:120,f:false},{c:'#000000',ms:700,f:false}]}];
+
+let S=Object.assign({type:'color',hex:'#4fd1ff',br:100,wi:255,mode:0,sp:60,on:true},store.get('last',{}));
+let PRO=store.get('profiles',clone(STARTP)),ANIMS=store.get('anims',clone(STARTA)),cur=clone(ANIMS[0]||STARTA[0]),sel=0,editing=false;
+const devs=[];let anim=null,pvTimer=null,demoN=0;
+
+const hex2=h=>[1,3,5].map(i=>parseInt(h.substr(i,2),16)||0);
+const toHex=a=>'#'+a.map(v=>Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+const hx=b=>Array.from(b,v=>v.toString(16).padStart(2,'0').toUpperCase()).join(' ');
+const mix=(a,b,f)=>a.map((v,i)=>v+(b[i]-v)*f);
+const ss=()=>Math.round(255-(S.sp-1)*254/99);
+const scaled=()=>hex2(S.hex).map(v=>Math.round(v*S.br/100));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const CMD={on:()=>[0xCC,0x23,0x33],off:()=>[0xCC,0x24,0x33],rgb:(r,g,b)=>[0x56,r,g,b,0x00,0xF0,0xAA],white:i=>[0x56,0,0,0,i,0x0F,0xAA],mode:(m,s)=>[0xBB,0x25+m,s,0x44],status:()=>[0xEF,0x01,0x77]};
+
+function log(t){const l=$('log'),d=document.createElement('div');d.textContent=new Date().toLocaleTimeString()+'  '+t;l.prepend(d);while(l.childNodes.length>80)l.lastChild.remove()}
+function say(main,right){const s=$('st');s.textContent='';const b=document.createElement('b');b.textContent=main;s.append(b);$('stR').textContent=right||''}
+async function send(bytes,quiet){
+  const u=new Uint8Array(bytes);if(!quiet)log('→ '+hx(u));
+  for(const d of devs){
+    if(!d.use||!d.ok||d.demo)continue;
+    if(d.busy){if(quiet)continue;for(let i=0;i<50&&d.busy;i++)await sleep(10)}
+    d.busy=true;
+    try{if(d.ch.writeValueWithoutResponse)await d.ch.writeValueWithoutResponse(u);else await d.ch.writeValue(u)}
+    catch(e){if(!quiet)log('! '+d.label+': '+e.message)}finally{d.busy=false}
+  }
+}
+
+/* the whole UI takes on the light's color */
+function paint(rgb){
+  const on=S.on,c=on?toHex(rgb):'#1b1f27';$('drl').style.color=c;
+  /* deep colors like pure blue are lifted toward white so buttons and labels stay readable */
+  const L=a=>(0.2126*a[0]+0.7152*a[1]+0.0722*a[2])/255,dim=Math.max(...rgb)<60;let ac=rgb;
+  if(L(ac)<0.4)ac=mix(ac,[255,255,255],(0.4-L(ac))/(1-L(ac)));
+  const r=document.documentElement.style;r.setProperty('--live',on&&!dim?toHex(ac):'#6b7383');r.setProperty('--onlive',on&&!dim&&L(ac)>0.5?'#0b0c10':'#ffffff');
+}
+function modeDef(m){if(m===0)return[C7,'fade'];if(m<=7)return[[ONE[m-1]],'pulse'];if(m<=10)return[PAIRS[m-8],'fade'];if(m===11)return[C7,'strobe'];if(m<=18)return[[ONE[m-12]],'strobe'];return[C7,'jump']}
+function modeColor(m,t,per){
+  const[c,k]=modeDef(m),n=c.length;
+  if(k==='fade'){const x=(t/per)%n,i=Math.floor(x);return mix(c[i],c[(i+1)%n],x-i)}
+  if(k==='pulse'){const f=(1-Math.cos(2*Math.PI*t/per))/2;return c[0].map(v=>v*f)}
+  if(k==='jump')return c[Math.floor(t/per)%n];
+  const q=Math.floor(t/(per/3));return q%2?[0,0,0]:c[Math.floor(q/2)%n];
+}
+function modeSwatch(m){const[c,k]=modeDef(m),h=c.map(toHex);
+  if(k==='pulse')return'linear-gradient(90deg,#000,'+h[0]+',#000)';
+  if(k==='strobe')return'repeating-linear-gradient(90deg,'+h.map((x,i)=>x+' '+(i*16)+'px '+(i*16+8)+'px,#000 '+(i*16+8)+'px '+(i*16+16)+'px').join(',')+')';
+  if(k==='jump')return'linear-gradient(90deg,'+h.map((x,i)=>x+' '+(i*100/h.length)+'% '+((i+1)*100/h.length)+'%').join(',')+')';
+  return'linear-gradient(90deg,'+h.join(',')+')';}
+function preview(){
+  clearInterval(pvTimer);pvTimer=null;
+  if(!S.on){paint([0,0,0]);return}
+  if(S.type==='color')paint(hex2(S.hex));
+  else if(S.type==='white')paint([255,255,255]);
+  else if(S.type==='mode'){const t0=performance.now(),per=250+ss()*10;pvTimer=setInterval(()=>paint(modeColor(S.mode,performance.now()-t0,per)),40)}
+}
+function ui(){
+  if(document.activeElement!==$('hexin')){$('hexin').value=S.hex.toUpperCase();$('hexin').classList.remove('bad');$('hexerr').textContent=''}
+  placeMarker();$('br').value=S.br;$('brv').textContent=S.br+'%';$('wi').value=S.wi;$('wiv').textContent=Math.round(S.wi/2.55)+'%';
+  $('sp').value=S.sp;$('spv').textContent=S.sp+'%';
+  $('pw').classList.toggle('on',S.on);$('pw').setAttribute('aria-pressed',S.on);
+  document.querySelectorAll('#fx button').forEach((b,i)=>b.classList.toggle('on',S.type==='mode'&&S.mode===i));
+}
+async function apply(){
+  stopAnim();store.set('last',S);preview();ui();
+  if(!S.on){await send(CMD.off());say('Off');return}
+  await send(CMD.on());
+  if(S.type==='color'){await send(CMD.rgb(...scaled()));say(S.hex.toUpperCase(),S.br+'%')}
+  else if(S.type==='white'){await send(CMD.white(S.wi));say('White LEDs',Math.round(S.wi/2.55)+'%')}
+  else{await send(CMD.mode(S.mode,ss()));say(MODES[S.mode],'speed '+S.sp+'%')}
+}
+function live(){S.type='color';stopAnim();preview();ui();say(S.hex.toUpperCase(),S.br+'%');send(CMD.rgb(...scaled()),true)}
+
+/* color wheel */
+const wh=$('wh');
+function hsv2rgb(h,s,v){const f=n=>{const k=(n+h/60)%6;return v*(1-s*Math.max(0,Math.min(k,4-k,1)))};return[f(5),f(3),f(1)].map(x=>Math.round(x*255))}
+function rgb2hs([r,g,b]){r/=255;g/=255;b/=255;const mx=Math.max(r,g,b),mn=Math.min(r,g,b),d=mx-mn;let h=0;
+  if(d){h=mx===r?((g-b)/d)%6:mx===g?(b-r)/d+2:(r-g)/d+4;h*=60;if(h<0)h+=360}return[h,mx?d/mx:0]}
+function drawWheel(){
+  const px=Math.round(wh.clientWidth*(window.devicePixelRatio||1));if(!px||wh.width===px)return;
+  wh.width=wh.height=px;const ctx=wh.getContext('2d'),img=ctx.createImageData(px,px),R=px/2;
+  for(let y=0;y<px;y++)for(let x=0;x<px;x++){const dx=x-R+.5,dy=y-R+.5,d=Math.hypot(dx,dy),i=(y*px+x)*4;
+    if(d>R)continue;const c=hsv2rgb((Math.atan2(dy,dx)*180/Math.PI+360)%360,Math.min(1,d/R),1);
+    img.data[i]=c[0];img.data[i+1]=c[1];img.data[i+2]=c[2];img.data[i+3]=d>R-1?Math.round((R-d)*255):255}
+  ctx.putImageData(img,0,0);
+}
+function placeMarker(){const[h,s]=rgb2hs(hex2(S.hex)),a=h*Math.PI/180,m=$('mk');m.style.left=(50+Math.cos(a)*s*50)+'%';m.style.top=(50+Math.sin(a)*s*50)+'%';m.style.background=S.hex}
+function pick(e){const r=wh.getBoundingClientRect(),R=r.width/2,dx=e.clientX-r.left-R,dy=e.clientY-r.top-R;
+  S.hex=toHex(hsv2rgb((Math.atan2(dy,dx)*180/Math.PI+360)%360,Math.min(1,Math.hypot(dx,dy)/R),1));live()}
+let dragging=false;
+wh.addEventListener('pointerdown',e=>{dragging=true;try{wh.setPointerCapture(e.pointerId)}catch(_){}e.preventDefault();pick(e)});
+wh.addEventListener('pointermove',e=>{if(dragging)pick(e)});
+const endDrag=()=>{if(dragging){dragging=false;S.type='color';apply()}};
+wh.addEventListener('pointerup',endDrag);wh.addEventListener('pointercancel',endDrag);
+const wro=new ResizeObserver(drawWheel);wro.observe(wh);
+function readHex(v){v=v.trim().replace(/^#/,'');if(/^[0-9a-f]{3}$/i.test(v))v=v.replace(/./g,c=>c+c);return/^[0-9a-f]{6}$/i.test(v)?'#'+v.toLowerCase():null}
+$('hexin').addEventListener('input',e=>{const h=readHex(e.target.value);e.target.classList.toggle('bad',!h&&e.target.value.length>=6);$('hexerr').textContent='';if(h){S.hex=h;live()}});
+$('hexin').addEventListener('change',e=>{const h=readHex(e.target.value);if(h){S.hex=h;S.type='color';apply()}else{e.target.classList.add('bad');$('hexerr').textContent='Use 6 characters 0–9, A–F, like #FF8800'}});
+$('hexin').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.target.blur()}});
+
+/* lights sheet */
+function openSheet(o){$('sheet').hidden=!o;$('scrim').hidden=!o;if(o)$('cn').focus()}
+function btWarn(){const n=$('bt');n.hidden=false;n.textContent='Bluetooth is blocked in this view. Open GlowLink from its own web address in Chrome on Android. Demo lights still work here.'}
+async function connect(){
+  if(!navigator.bluetooth){btWarn();openSheet(false);return}
+  try{
+    const opt={optionalServices:[0xffd5,0xffd0,0xffe0,0xfff0]};
+    if($('all').checked)opt.acceptAllDevices=true;else opt.filters=['Triones','Dream','BRGlight','LEDBLE','LEDBlue','QHM','Light','Happy'].map(p=>({namePrefix:p}));
+    const dev=await navigator.bluetooth.requestDevice(opt);
+    let d=devs.find(x=>x.id===dev.id);
+    if(!d){d={dev,id:dev.id,label:store.get('names',{})[dev.id]||dev.name||'Light',use:true,ok:false};devs.push(d);
+      dev.addEventListener('gattserverdisconnected',()=>{d.ok=false;log('✕ '+d.label+' disconnected');renderDevs()})}
+    await link(d);
+  }catch(e){
+    const blocked=e.name==='SecurityError'||/policy|permission|allowed/i.test(e.message);
+    if(blocked){btWarn();openSheet(false)}else if(e.name==='NotFoundError'){log('(no light picked)');return}
+    log('! '+e.name+': '+e.message);
+  }
+}
+async function link(d){
+  log('… connecting to '+d.label);
+  try{
+    const srv=await d.dev.gatt.connect();
+    try{d.ch=await(await srv.getPrimaryService(0xffd5)).getCharacteristic(0xffd9)}
+    catch(e){let list='';try{list=(await srv.getPrimaryServices()).map(s=>s.uuid.slice(4,8).toUpperCase()).join(', ')}catch(_){}
+      log('! '+d.label+' has no FFD5/FFD9 control channel. Services seen: '+(list||'none')+'. It may use a different protocol. Share this line to adapt the app.');renderDevs();return}
+    d.ok=true;log('✓ '+d.label+' connected');
+    try{const n=await(await srv.getPrimaryService(0xffd0)).getCharacteristic(0xffd4);await n.startNotifications();
+      n.addEventListener('characteristicvaluechanged',ev=>{const v=ev.target.value;status(d,new Uint8Array(v.buffer,v.byteOffset,v.byteLength))})}
+    catch(e){log('(no status channel on '+d.label+')')}
+    renderDevs();if($('rl').checked)apply();
+  }catch(e){log('! could not connect to '+d.label+': '+e.message);renderDevs()}
+}
+function status(d,b){log('← '+hx(b));if(b.length<12||b[0]!==0x66)return;
+  const m=b[3],what=m===0x41?toHex([b[6],b[7],b[8]]).toUpperCase():(m>=0x25&&m<=0x38?MODES[m-0x25]:'mode 0x'+m.toString(16));
+  say(d.label+': '+(b[2]===0x23?'on':'off'),what)}
+function renderDevs(){
+  const n=devs.filter(d=>d.ok).length;$('lightsTxt').textContent=devs.length?n+' of '+devs.length+' on':'No lights';$('dotTop').classList.toggle('ok',n>0);
+  const box=$('devs');box.textContent='';
+  devs.forEach(d=>{
+    const r=document.createElement('div');r.className='dev';
+    const dot=document.createElement('span');dot.className='dot'+(d.ok?' ok':'');
+    const nm=document.createElement('input');nm.type='text';nm.value=d.label;nm.setAttribute('aria-label','Light name');
+    nm.addEventListener('change',()=>{d.label=nm.value||'Light';if(!d.demo){const s=store.get('names',{});s[d.id]=d.label;store.set('names',s)}});
+    const lb=document.createElement('label');lb.className='sw-t';const cb=document.createElement('input');cb.type='checkbox';cb.checked=d.use;cb.setAttribute('aria-label','Control '+d.label);cb.addEventListener('change',()=>{d.use=cb.checked});lb.append(cb);
+    r.append(dot,nm,lb);
+    if(!d.ok&&!d.demo){const rc=document.createElement('button');rc.className='ghost';rc.textContent='Reconnect';rc.addEventListener('click',()=>link(d));r.append(rc)}
+    const rm=document.createElement('button');rm.className='ghost';rm.textContent='Remove';
+    rm.addEventListener('click',()=>{try{if(d.dev&&d.dev.gatt.connected)d.dev.gatt.disconnect()}catch(e){}devs.splice(devs.indexOf(d),1);renderDevs()});
+    r.append(rm);box.append(r);
+  });
+}
+
+/* looks (profiles) */
+function snap(){return anim?{type:'anim',a:clone(cur)}:{type:S.type,hex:S.hex,br:S.br,wi:S.wi,mode:S.mode,sp:S.sp}}
+function lookBg(s){if(s.type==='color')return s.hex;if(s.type==='white')return'#ffffff';if(s.type==='mode')return modeSwatch(s.mode);
+  const h=s.a.steps.map(x=>x.c);return'linear-gradient(90deg,'+(h.length>1?h.join(','):h[0]+','+h[0])+')'}
+function renderLooks(){
+  const box=$('looks');box.textContent='';
+  PRO.forEach((p,i)=>{
+    const b=document.createElement('button');b.className='look';
+    const bar=document.createElement('i');bar.style.background=lookBg(p.s);
+    const t=document.createElement('span');t.textContent=p.name;b.append(bar,t);
+    if(editing){const x=document.createElement('button');x.className='x';x.textContent='✕';x.setAttribute('aria-label','Delete '+p.name);
+      x.addEventListener('click',e=>{e.stopPropagation();PRO.splice(i,1);store.set('profiles',PRO);renderLooks()});b.append(x)}
+    else b.addEventListener('click',()=>{if(p.s.type==='anim')play(p.s.a);else{Object.assign(S,p.s,{on:true});apply()}say(p.name,'look')});
+    box.append(b);
+  });
+  if(!editing){const add=document.createElement('div');add.className='look add';
+    const inp=document.createElement('input');inp.type='text';inp.placeholder='Name';inp.setAttribute('aria-label','New look name');
+    const sv=document.createElement('button');sv.className='go';sv.textContent='Save current';
+    sv.addEventListener('click',()=>{PRO.push({name:inp.value.trim()||'Look '+(PRO.length+1),s:snap()});store.set('profiles',PRO);renderLooks()});
+    add.append(inp,sv);box.append(add)}
+}
+$('editLooks').addEventListener('click',()=>{editing=!editing;$('editLooks').textContent=editing?'Done':'Edit';renderLooks()});
+
+/* animations */
+function renderAnimList(){const s=$('as');s.textContent='';ANIMS.forEach((a,i)=>{const o=document.createElement('option');o.value=i;o.textContent=a.name;s.append(o)});const i=ANIMS.findIndex(a=>a.name===cur.name);if(i>=0)s.value=i}
+function renderAnim(){
+  $('an').value=cur.name;$('aloop').checked=cur.loop!==false;if(sel>=cur.steps.length)sel=cur.steps.length-1;
+  const tl=$('tl');tl.textContent='';let total=0;
+  cur.steps.forEach((s,i)=>{total+=s.ms;const b=document.createElement('button');const nx=cur.steps[(i+1)%cur.steps.length];
+    b.style.flex=String(Math.max(50,s.ms));b.style.background=s.f?'linear-gradient(90deg,'+s.c+','+nx.c+')':s.c;
+    b.className=i===sel?'sel':'';b.setAttribute('aria-label','Step '+(i+1));b.addEventListener('click',()=>{sel=i;renderAnim()});tl.append(b)});
+  $('tlLen').textContent=cur.steps.length+' steps · '+(total/1000).toFixed(1)+' s';
+  const ed=$('ed');ed.textContent='';const s=cur.steps[sel];if(!s)return;
+  ed.innerHTML='<div class="row"><input type="color" id="ec" aria-label="Step color"><input type="text" id="eh" maxlength="7" aria-label="Step hex code" style="width:120px;font-family:ui-monospace,monospace;text-transform:uppercase"><button class="ghost" id="ew">Use wheel color</button></div>'+
+    '<div class="lbl" style="margin:0"><span>Step '+(sel+1)+' length</span><span id="emv"></span></div><input type="range" id="em" min="50" max="3000" step="50" aria-label="Step length">'+
+    '<div class="row"><label class="sw-t" style="flex:1"><input type="checkbox" id="ef"> Fade to next</label><button class="ghost" id="el" aria-label="Move earlier">◀</button><button class="ghost" id="er" aria-label="Move later">▶</button><button class="ghost" id="ex">Remove</button></div>';
+  const setC=c=>{s.c=c;$('ec').value=c;$('eh').value=c.toUpperCase();paint(hex2(c));drawTL()};
+  $('ec').value=s.c;$('eh').value=s.c.toUpperCase();$('em').value=s.ms;$('emv').textContent=(s.ms/1000).toFixed(2)+' s';$('ef').checked=s.f;
+  $('ec').addEventListener('input',e=>setC(e.target.value));
+  $('eh').addEventListener('change',e=>{const h=readHex(e.target.value);if(h)setC(h);else e.target.value=s.c.toUpperCase()});
+  $('ew').addEventListener('click',()=>setC(S.hex));
+  $('em').addEventListener('input',e=>{s.ms=+e.target.value;$('emv').textContent=(s.ms/1000).toFixed(2)+' s';drawTL()});
+  $('ef').addEventListener('change',e=>{s.f=e.target.checked;drawTL()});
+  $('el').addEventListener('click',()=>{if(sel>0){cur.steps.splice(sel-1,0,cur.steps.splice(sel,1)[0]);sel--;renderAnim()}});
+  $('er').addEventListener('click',()=>{if(sel<cur.steps.length-1){cur.steps.splice(sel+1,0,cur.steps.splice(sel,1)[0]);sel++;renderAnim()}});
+  $('ex').addEventListener('click',()=>{if(cur.steps.length>1){cur.steps.splice(sel,1);renderAnim()}});
+}
+function drawTL(){const bs=$('tl').children;let total=0;cur.steps.forEach((s,i)=>{total+=s.ms;const nx=cur.steps[(i+1)%cur.steps.length];bs[i].style.flex=String(s.ms);bs[i].style.background=s.f?'linear-gradient(90deg,'+s.c+','+nx.c+')':s.c});$('tlLen').textContent=cur.steps.length+' steps · '+(total/1000).toFixed(1)+' s'}
+function play(a){
+  stopAnim();clearInterval(pvTimer);pvTimer=null;if(!a.steps||!a.steps.length)return;
+  S.on=true;ui();send(CMD.on());log('▶ "'+a.name+'"');say(a.name,'playing');$('aplay').textContent='Stop';
+  const len=a.steps.map(s=>Math.max(50,+s.ms||50)),total=len.reduce((x,y)=>x+y,0),t0=performance.now();
+  anim=setInterval(()=>{
+    let t=performance.now()-t0;if(a.loop===false&&t>=total){stopAnim();return}
+    t%=total;let i=0,acc=0;while(i<len.length-1&&t>=acc+len[i]){acc+=len[i];i++}
+    const s=a.steps[i],nx=a.steps[(i+1)%a.steps.length];let c=hex2(s.c);
+    if(s.f&&(a.loop!==false||i<a.steps.length-1))c=mix(c,hex2(nx.c),(t-acc)/len[i]);
+    c=c.map(Math.round);paint(c);send(CMD.rgb(...c),true);
+  },40);
+}
+function stopAnim(){if(anim){clearInterval(anim);anim=null;log('■ stopped');$('aplay').textContent='Play'}}
+
+/* wiring */
+SW.forEach(h=>{const b=document.createElement('button');b.className='sw';b.style.background=h;b.setAttribute('aria-label','Color '+h);b.addEventListener('click',()=>{S.hex=h;S.type='color';apply()});$('sws').append(b)});
+MODES.forEach((m,i)=>{const b=document.createElement('button');b.className='fx';const bar=document.createElement('i');bar.style.background=modeSwatch(i);
+  const t=document.createElement('span');t.textContent=m;b.append(bar,t);b.addEventListener('click',()=>{S.type='mode';S.mode=i;apply()});$('fx').append(b)});
+$('br').addEventListener('input',e=>{S.br=+e.target.value;if(S.type==='color')live();else ui()});
+$('br').addEventListener('change',()=>{if(S.type==='color')apply()});
+$('wi').addEventListener('input',e=>{S.wi=+e.target.value;ui()});
+$('wi').addEventListener('change',()=>{if(S.type==='white')apply()});
+$('wb').addEventListener('click',()=>{S.type='white';apply()});
+$('sp').addEventListener('input',e=>{S.sp=+e.target.value;ui()});
+$('sp').addEventListener('change',()=>{if(S.type==='mode')apply()});
+$('pw').addEventListener('click',()=>{S.on=!S.on;apply()});
+$('lightsBtn').addEventListener('click',()=>openSheet(true));
+$('closeSheet').addEventListener('click',()=>openSheet(false));
+$('scrim').addEventListener('click',()=>openSheet(false));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')openSheet(false)});
+$('cn').addEventListener('click',connect);
+$('demo').addEventListener('click',()=>{demoN++;devs.push({id:'demo'+demoN,label:'Demo light '+demoN,demo:true,ok:true,use:true});log('✓ demo light added (commands logged, nothing sent)');renderDevs()});
+document.querySelectorAll('nav.bar button').forEach(b=>b.addEventListener('click',()=>{
+  document.querySelectorAll('nav.bar button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  ['color','fx','looks','an','more'].forEach(v=>{$('v-'+v).hidden=v!==b.dataset.v});window.scrollTo({top:0});
+}));
+$('as').addEventListener('change',e=>{cur=clone(ANIMS[+e.target.value]);sel=0;renderAnim()});
+$('anew').addEventListener('click',()=>{cur={name:'My animation '+(ANIMS.length+1),loop:true,steps:[{c:'#ff0040',ms:500,f:true},{c:'#4fd1ff',ms:500,f:true}]};sel=0;renderAnim()});
+$('an').addEventListener('change',e=>{cur.name=e.target.value.trim()||'Untitled'});
+$('aloop').addEventListener('change',e=>{cur.loop=e.target.checked});
+$('aadd').addEventListener('click',()=>{const l=cur.steps[cur.steps.length-1];cur.steps.push({c:l?l.c:'#ffffff',ms:500,f:true});sel=cur.steps.length-1;renderAnim()});
+$('aplay').addEventListener('click',()=>{if(anim){stopAnim();preview();say('Stopped')}else play(clone(cur))});
+$('asave').addEventListener('click',()=>{cur.name=$('an').value.trim()||'Untitled';const i=ANIMS.findIndex(a=>a.name===cur.name);if(i>=0)ANIMS[i]=clone(cur);else ANIMS.push(clone(cur));store.set('anims',ANIMS);renderAnimList();$('asave').textContent='Saved';setTimeout(()=>{$('asave').textContent='Save'},1500)});
+$('adel').addEventListener('click',()=>{const i=ANIMS.findIndex(a=>a.name===cur.name);if(i>=0)ANIMS.splice(i,1);store.set('anims',ANIMS);cur=clone(ANIMS[0]||STARTA[0]);sel=0;renderAnimList();renderAnim()});
+$('stq').addEventListener('click',()=>send(CMD.status()));
+$('lc').addEventListener('click',()=>{$('log').textContent=''});
+$('bk').addEventListener('toggle',()=>{if($('bk').open)$('px').value=JSON.stringify({profiles:PRO,anims:ANIMS})});
+$('pc').addEventListener('click',async()=>{$('px').value=JSON.stringify({profiles:PRO,anims:ANIMS});try{await navigator.clipboard.writeText($('px').value);$('pc').textContent='Copied'}catch(e){$('px').select();$('pc').textContent='Select and copy'}setTimeout(()=>{$('pc').textContent='Copy'},2000)});
+$('pi').addEventListener('click',()=>{try{const o=JSON.parse($('px').value);if(Array.isArray(o.profiles))PRO=o.profiles;if(Array.isArray(o.anims))ANIMS=o.anims;store.set('profiles',PRO);store.set('anims',ANIMS);renderLooks();renderAnimList();$('pi').textContent='Imported'}catch(e){$('pi').textContent='Not a valid backup'}setTimeout(()=>{$('pi').textContent='Import'},2500)});
+
+if(!navigator.bluetooth)btWarn();
+renderDevs();renderLooks();renderAnimList();renderAnim();ui();preview();
+}
+</script>
+</body></html>
